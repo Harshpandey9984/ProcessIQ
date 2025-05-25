@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digital Twin Platform Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .error {
+            color: #ff0000;
+        }
+        .success {
+            color: #008000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Digital Twin Platform Connection Test</h1>
+        
+        <h2>Backend Status</h2>
+        <button onclick="checkBackendHealth()">Check Backend Health</button>
+        <div id="backendStatus"></div>
+        
+        <h2>Frontend Status</h2>
+        <button onclick="checkFrontend()">Check Frontend</button>
+        <div id="frontendStatus"></div>
+        
+        <h2>Direct API Tests</h2>
+        <button onclick="testLogin()">Test Login API</button>
+        <div id="loginStatus"></div>
+
+        <h2>Troubleshooting</h2>
+        <div>
+            <p>If connections are failing:</p>
+            <ol>
+                <li>Check that servers are running (backend on port 8001, frontend on port 3000)</li>
+                <li>Try using localhost instead of 127.0.0.1 (or vice versa)</li>
+                <li>Check for firewall blocking connections</li>
+                <li>Check browser console for CORS errors</li>
+                <li>Try using another browser</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function checkBackendHealth() {
+            const statusDiv = document.getElementById('backendStatus');
+            statusDiv.innerHTML = 'Checking backend...';
+            
+            try {
+                // Try with localhost
+                const response = await fetch('http://localhost:8001/health');
+                const data = await response.json();
+                statusDiv.innerHTML = `<p class="success">Backend is healthy!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                try {
+                    // Try with IP address
+                    const response = await fetch('http://127.0.0.1:8001/health');
+                    const data = await response.json();
+                    statusDiv.innerHTML = `<p class="success">Backend is healthy (using 127.0.0.1)!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } catch (error2) {
+                    statusDiv.innerHTML = `<p class="error">Failed to connect to backend: ${error.message}</p>
+                    <p>Make sure the backend is running on port 8001.</p>`;
+                }
+            }
+        }
+        
+        async function checkFrontend() {
+            const statusDiv = document.getElementById('frontendStatus');
+            statusDiv.innerHTML = 'Checking frontend...';
+            
+            try {
+                // Try with localhost
+                const response = await fetch('http://localhost:3000');
+                const text = await response.text();
+                statusDiv.innerHTML = `<p class="success">Frontend is responding!</p>
+                <p>Frontend HTML size: ${text.length} bytes</p>`;
+            } catch (error) {
+                try {
+                    // Try with IP address
+                    const response = await fetch('http://127.0.0.1:3000');
+                    const text = await response.text();
+                    statusDiv.innerHTML = `<p class="success">Frontend is responding (using 127.0.0.1)!</p>
+                    <p>Frontend HTML size: ${text.length} bytes</p>`;
+                } catch (error2) {
+                    statusDiv.innerHTML = `<p class="error">Failed to connect to frontend: ${error.message}</p>
+                    <p>Make sure the frontend is running on port 3000.</p>`;
+                }
+            }
+        }
+        
+        async function testLogin() {
+            const statusDiv = document.getElementById('loginStatus');
+            statusDiv.innerHTML = 'Testing login API...';
+            
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', 'admin@example.com');
+                formData.append('password', 'password');
+                
+                const response = await fetch('http://localhost:8001/api/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `<p class="success">Login successful!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    statusDiv.innerHTML = `<p class="error">Login failed with status ${response.status}</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                try {
+                    // Try with IP address
+                    const formData = new URLSearchParams();
+                    formData.append('username', 'admin@example.com');
+                    formData.append('password', 'password');
+                    
+                    const response = await fetch('http://127.0.0.1:8001/api/auth/token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        statusDiv.innerHTML = `<p class="success">Login successful (using 127.0.0.1)!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    } else {
+                        statusDiv.innerHTML = `<p class="error">Login failed with status ${response.status} (using 127.0.0.1)</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    }
+                } catch (error2) {
+                    statusDiv.innerHTML = `<p class="error">Failed to connect to login API: ${error.message}</p>
+                    <p>Make sure the backend is running on port 8001.</p>`;
+                }
+            }
+        }
+        
+        // Check backend health on page load
+        window.onload = checkBackendHealth;
+    </script>
+</body>
+</html>

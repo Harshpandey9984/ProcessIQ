@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Backend API service
+  api:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/digitaltwin
+      - TIMESERIES_DB_URL=http://timeseries-db:8086
+      - DEBUG=True
+      - SECRET_KEY=devkey_change_in_production
+    depends_on:
+      - db
+      - timeseries-db
+
+  # Frontend React service
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app/frontend:/app
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - api
+
+  # PostgreSQL database
+  db:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=digitaltwin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # InfluxDB for time series data
+  timeseries-db:
+    image: influxdb:2.0
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password123
+      - DOCKER_INFLUXDB_INIT_ORG=digitaltwin
+      - DOCKER_INFLUXDB_INIT_BUCKET=manufacturing
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+
+  # MinIO for object storage (for model artifacts, etc.)
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    command: server --console-address ":9001" /data
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  minio_data:

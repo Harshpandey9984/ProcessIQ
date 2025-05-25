@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Direct Login Test</h1>
+    
+    <div class="container">
+        <h2>Backend Health Check</h2>
+        <button onclick="checkHealth()">Check Backend Health</button>
+        <div id="healthResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Authentication Debug</h2>
+        <button onclick="checkAuthDebug()">Check Auth Configuration</button>
+        <div id="authDebugResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Direct Login Test</h2>
+        <p>This will test login directly against the backend API without going through the React app.</p>
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="admin@example.com">
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="password">
+        </div>
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Access Protected Endpoint</h2>
+        <p>This will test accessing a protected endpoint using the token from login.</p>
+        <button onclick="testProtectedEndpoint()">Test Protected Access</button>
+        <div id="protectedResult"></div>
+    </div>
+    
+    <script>
+        let authToken = null;
+        
+        async function checkHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.innerHTML = '<p>Checking backend health...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8001/health');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <p class="success">Backend is healthy! ✅</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message} ❌</p>
+                    <p>Make sure the backend server is running on port 8001.</p>
+                `;
+            }
+        }
+        
+        async function checkAuthDebug() {
+            const resultDiv = document.getElementById('authDebugResult');
+            resultDiv.innerHTML = '<p>Checking auth configuration...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:8001/debug/auth');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <p class="success">Auth configuration retrieved! ✅</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message} ❌</p>
+                    <p>Make sure the backend server is running and includes the debug endpoint.</p>
+                `;
+            }
+        }
+        
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = '<p>Testing login...</p>';
+            
+            // Get credentials from inputs
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Create form data with credentials
+            const formData = new URLSearchParams();
+            formData.append('username', email);
+            formData.append('password', password);
+            
+            try {
+                const requestDetails = {
+                    url: 'http://localhost:8001/api/auth/token',
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                };
+                
+                resultDiv.innerHTML += `
+                    <p>Request URL: ${requestDetails.url}</p>
+                    <p>Method: ${requestDetails.method}</p>
+                    <p>Headers: ${JSON.stringify(requestDetails.headers)}</p>
+                    <p>Body: ${requestDetails.body}</p>
+                `;
+                
+                const response = await fetch(requestDetails.url, {
+                    method: requestDetails.method,
+                    headers: requestDetails.headers,
+                    body: requestDetails.body
+                });
+                
+                resultDiv.innerHTML += `
+                    <p>Response status: ${response.status} ${response.statusText}</p>
+                `;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">Login successful! ✅</p>
+                        <p>Token type: ${data.token_type}</p>
+                        <p>Token: ${authToken ? authToken.substring(0, 20) + '...' : 'None'}</p>
+                        <pre>${JSON.stringify(data.user, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <p class="error">Login failed! ❌</p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <p class="error">Error: ${error.message} ❌</p>
+                    <p>Make sure the backend server is running and CORS is properly configured.</p>
+                `;
+            }
+        }
+        
+        async function testProtectedEndpoint() {
+            const resultDiv = document.getElementById('protectedResult');
+            resultDiv.innerHTML = '<p>Testing protected endpoint access...</p>';
+            
+            if (!authToken) {
+                resultDiv.innerHTML += `
+                    <p class="error">No authentication token available! ❌</p>
+                    <p>Please run the login test first to get a token.</p>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/digital-twin', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                resultDiv.innerHTML += `
+                    <p>Response status: ${response.status} ${response.statusText}</p>
+                `;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML += `
+                        <p class="success">Successfully accessed protected endpoint! ✅</p>
+                        <p>Received ${data.length} digital twins</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML += `
+                        <p class="error">Failed to access protected endpoint! ❌</p>
+                        <pre>${errorText}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <p class="error">Error: ${error.message} ❌</p>
+                `;
+            }
+        }
+        
+        // Run health check automatically on page load
+        window.onload = function() {
+            checkHealth();
+        };
+    </script>
+</body>
+</html>
