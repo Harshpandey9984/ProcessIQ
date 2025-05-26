@@ -34,9 +34,9 @@ class RateLimiter(BaseHTTPMiddleware):
         ip = request.client.host
         path = request.url.path
         
-        # Skip rate limiting for non-auth paths if needed
-        # if not path.startswith("/api/auth"):
-        #     return await call_next(request)
+        # Exclude auth endpoints from rate limiting
+        if path.startswith("/api/auth"):
+            return await call_next(request)
         
         current_time = int(time.time())
         
