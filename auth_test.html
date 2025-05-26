@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Digital Twin Platform - Auth API Test</h1>
+    
+    <div class="container">
+        <h2>Health Check</h2>
+        <button onclick="checkHealth()">Check API Health</button>
+        <div id="healthResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Login</h2>
+        <div>
+            <label for="loginEmail">Email:</label>
+            <input type="email" id="loginEmail" value="admin@example.com">
+        </div>
+        <div>
+            <label for="loginPassword">Password:</label>
+            <input type="password" id="loginPassword" value="password">
+        </div>
+        <button onclick="login()">Login</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Register</h2>
+        <div>
+            <label for="registerEmail">Email:</label>
+            <input type="email" id="registerEmail" value="newuser@example.com">
+        </div>
+        <div>
+            <label for="registerPassword">Password:</label>
+            <input type="password" id="registerPassword" value="password123">
+        </div>
+        <div>
+            <label for="registerName">Full Name:</label>
+            <input type="text" id="registerName" value="New Test User">
+        </div>
+        <button onclick="register()">Register</button>
+        <div id="registerResult"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8001';
+        
+        function displayResult(elementId, isSuccess, message, data) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `
+                <p class="${isSuccess ? 'success' : 'error'}">${message}</p>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+        
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                displayResult('healthResult', true, 'API is healthy', data);
+            } catch (error) {
+                displayResult('healthResult', false, `Error: ${error.message}`);
+            }
+        }
+        
+        async function login() {
+            try {
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                
+                const formData = new URLSearchParams();
+                formData.append('username', email);
+                formData.append('password', password);
+                
+                const response = await fetch(`${BASE_URL}/api/auth/token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayResult('loginResult', true, 'Login successful!', data);
+                    localStorage.setItem('auth_token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                } else {
+                    displayResult('loginResult', false, 'Login failed', data);
+                }
+            } catch (error) {
+                displayResult('loginResult', false, `Error: ${error.message}`);
+            }
+        }
+        
+        async function register() {
+            try {
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+                const fullName = document.getElementById('registerName').value;
+                
+                const response = await fetch(`${BASE_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        full_name: fullName
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayResult('registerResult', true, 'Registration successful!', data);
+                } else {
+                    displayResult('registerResult', false, 'Registration failed', data);
+                }
+            } catch (error) {
+                displayResult('registerResult', false, `Error: ${error.message}`);
+            }
+        }
+        
+        // Check health on page load
+        window.onload = checkHealth;
+    </script>
+</body>
+</html>

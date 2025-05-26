@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Digital Twin Platform - Debug Login</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .response {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      background-color: #f1f1f1;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    .tab.active {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .error {
+      color: red;
+      margin-top: 15px;
+    }
+    .success {
+      color: green;
+      margin-top: 15px;
+    }
+    pre {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Digital Twin Platform - Debug Login</h1>
+    
+    <div class="tabs">
+      <div class="tab active" onclick="openTab(event, 'login-tab')">Login</div>
+      <div class="tab" onclick="openTab(event, 'register-tab')">Register</div>
+      <div class="tab" onclick="openTab(event, 'data-tab')">Fetch Data</div>
+    </div>
+    
+    <div id="login-tab" class="tab-content active">
+      <h2>Login</h2>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" value="admin@example.com" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="password" placeholder="Enter password">
+      </div>
+      <button onclick="login()">Login</button>
+      <div id="login-message" class="error"></div>
+      <div id="login-success" class="success"></div>
+      <div class="response">
+        <h3>Response:</h3>
+        <pre id="login-response"></pre>
+      </div>
+    </div>
+    
+    <div id="register-tab" class="tab-content">
+      <h2>Register</h2>
+      <div class="form-group">
+        <label for="reg-email">Email:</label>
+        <input type="email" id="reg-email" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label for="reg-password">Password:</label>
+        <input type="password" id="reg-password" placeholder="Enter password">
+      </div>
+      <div class="form-group">
+        <label for="reg-name">Full Name:</label>
+        <input type="text" id="reg-name" placeholder="Enter full name">
+      </div>
+      <div class="form-group">
+        <label for="reg-company">Company:</label>
+        <input type="text" id="reg-company" placeholder="Enter company name">
+      </div>
+      <button onclick="register()">Register</button>
+      <div id="register-message" class="error"></div>
+      <div id="register-success" class="success"></div>
+      <div class="response">
+        <h3>Response:</h3>
+        <pre id="register-response"></pre>
+      </div>
+    </div>
+    
+    <div id="data-tab" class="tab-content">
+      <h2>Fetch Data</h2>
+      <p>Fetch data from the API. You need to be logged in first.</p>
+      <button onclick="fetchData()">Fetch Digital Twins</button>
+      <div id="data-message" class="error"></div>
+      <div class="response">
+        <h3>Response:</h3>
+        <pre id="data-response"></pre>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Store the auth token
+    let authToken = localStorage.getItem('dt_auth_token') || '';
+    
+    // Tab functionality
+    function openTab(evt, tabName) {
+      const tabContents = document.getElementsByClassName("tab-content");
+      for (let i = 0; i < tabContents.length; i++) {
+        tabContents[i].classList.remove("active");
+      }
+      
+      const tabs = document.getElementsByClassName("tab");
+      for (let i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove("active");
+      }
+      
+      document.getElementById(tabName).classList.add("active");
+      evt.currentTarget.classList.add("active");
+    }
+    
+    // Login function
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const messageEl = document.getElementById('login-message');
+      const successEl = document.getElementById('login-success');
+      const responseEl = document.getElementById('login-response');
+      
+      messageEl.textContent = '';
+      successEl.textContent = '';
+      
+      if (!email || !password) {
+        messageEl.textContent = 'Please enter both email and password';
+        return;
+      }
+      
+      try {
+        // Create form data
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
+        
+        // Log request details
+        console.log('Login request:');
+        console.log('URL:', 'http://localhost:8001/api/auth/token');
+        console.log('Data:', formData.toString());
+        
+        // Make the request
+        const response = await fetch('http://localhost:8001/api/auth/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          },
+          body: formData
+        });
+        
+        // Get response data
+        const data = await response.json();
+        responseEl.textContent = JSON.stringify(data, null, 2);
+        
+        if (response.ok) {
+          // Store the token
+          authToken = data.access_token;
+          localStorage.setItem('dt_auth_token', authToken);
+          localStorage.setItem('dt_user', JSON.stringify(data.user));
+          
+          successEl.textContent = 'Login successful!';
+          console.log('Login successful:', data);
+        } else {
+          messageEl.textContent = data.detail || 'Login failed';
+          console.error('Login failed:', data);
+        }
+      } catch (error) {
+        messageEl.textContent = 'Error: ' + error.message;
+        console.error('Login error:', error);
+      }
+    }
+    
+    // Register function
+    async function register() {
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      const fullName = document.getElementById('reg-name').value;
+      const company = document.getElementById('reg-company').value;
+      const messageEl = document.getElementById('register-message');
+      const successEl = document.getElementById('register-success');
+      const responseEl = document.getElementById('register-response');
+      
+      messageEl.textContent = '';
+      successEl.textContent = '';
+      
+      if (!email || !password) {
+        messageEl.textContent = 'Please enter at least email and password';
+        return;
+      }
+      
+      try {
+        // Create request data
+        const requestData = {
+          email: email,
+          password: password,
+          full_name: fullName,
+          company: company
+        };
+        
+        // Log request details
+        console.log('Register request:');
+        console.log('URL:', 'http://localhost:8001/api/auth/register');
+        console.log('Data:', JSON.stringify(requestData));
+        
+        // Make the request
+        const response = await fetch('http://localhost:8001/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+        });
+        
+        // Get response data
+        const data = await response.json();
+        responseEl.textContent = JSON.stringify(data, null, 2);
+        
+        if (response.ok) {
+          successEl.textContent = 'Registration successful! You can now login.';
+          console.log('Registration successful:', data);
+        } else {
+          messageEl.textContent = data.detail || 'Registration failed';
+          console.error('Registration failed:', data);
+        }
+      } catch (error) {
+        messageEl.textContent = 'Error: ' + error.message;
+        console.error('Registration error:', error);
+      }
+    }
+    
+    // Fetch data function
+    async function fetchData() {
+      const messageEl = document.getElementById('data-message');
+      const responseEl = document.getElementById('data-response');
+      
+      messageEl.textContent = '';
+      
+      if (!authToken) {
+        messageEl.textContent = 'Please login first';
+        return;
+      }
+      
+      try {
+        // Make the request
+        const response = await fetch('http://localhost:8001/api/digital-twin', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'application/json'
+          }
+        });
+        
+        // Get response data
+        const data = await response.json();
+        responseEl.textContent = JSON.stringify(data, null, 2);
+        
+        if (!response.ok) {
+          messageEl.textContent = data.detail || 'Failed to fetch data';
+          console.error('Data fetch failed:', data);
+        }
+      } catch (error) {
+        messageEl.textContent = 'Error: ' + error.message;
+        console.error('Data fetch error:', error);
+      }
+    }
+    
+    // Check for existing token on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('dt_auth_token');
+      if (token) {
+        document.getElementById('login-success').textContent = 'Already logged in';
+      }
+    });
+  </script>
+</body>
+</html>

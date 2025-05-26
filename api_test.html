@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>API Test Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+    }
+    .card {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      cursor: pointer;
+      margin-right: 10px;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .error {
+      color: red;
+    }
+    .success {
+      color: green;
+    }
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Digital Twin Platform API Test Tool</h1>
+    
+    <div class="card">
+      <h2>Health Check</h2>
+      <button onclick="checkHealth()">Check Health</button>
+      <div id="health-result"></div>
+    </div>
+    
+    <div class="card">
+      <h2>Login</h2>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" value="admin@example.com" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="password" placeholder="Enter password">
+      </div>
+      <button onclick="login()">Login</button>
+      <div id="login-result"></div>
+    </div>
+    
+    <div class="card">
+      <h2>Register</h2>
+      <div class="form-group">
+        <label for="reg-email">Email:</label>
+        <input type="email" id="reg-email" placeholder="Enter email">
+      </div>
+      <div class="form-group">
+        <label for="reg-password">Password:</label>
+        <input type="password" id="reg-password" placeholder="Enter password">
+      </div>
+      <div class="form-group">
+        <label for="reg-name">Full Name:</label>
+        <input type="text" id="reg-name" placeholder="Enter full name">
+      </div>
+      <button onclick="register()">Register</button>
+      <div id="register-result"></div>
+    </div>
+    
+    <div class="card">
+      <h2>Get Digital Twins</h2>
+      <button onclick="getDigitalTwins()">Get Digital Twins</button>
+      <div id="twins-result"></div>
+    </div>
+  </div>
+
+  <script>
+    // Store the authentication token
+    let authToken = '';
+    
+    // Health check function
+    async function checkHealth() {
+      const resultDiv = document.getElementById('health-result');
+      resultDiv.innerHTML = 'Checking health...';
+      
+      try {
+        const response = await fetch('http://localhost:8001/health');
+        const data = await response.json();
+        
+        resultDiv.innerHTML = `
+          <div class="success">Health check successful!</div>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">Health check failed: ${error.message}</div>
+          <p>Make sure the backend server is running on port 8001</p>
+        `;
+      }
+    }
+    
+    // Login function
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const resultDiv = document.getElementById('login-result');
+      
+      resultDiv.innerHTML = 'Logging in...';
+      
+      try {
+        // Create URLSearchParams for form data
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
+        
+        // Make POST request
+        const response = await fetch('http://localhost:8001/api/auth/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          authToken = data.access_token;
+          resultDiv.innerHTML = `
+            <div class="success">Login successful!</div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">Login failed: ${data.detail}</div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">Error: ${error.message}</div>
+          <p>Make sure the backend server is running on port 8001</p>
+        `;
+      }
+    }
+    
+    // Registration function
+    async function register() {
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      const fullName = document.getElementById('reg-name').value;
+      const resultDiv = document.getElementById('register-result');
+      
+      resultDiv.innerHTML = 'Registering...';
+      
+      try {
+        // Create JSON payload
+        const payload = {
+          email: email,
+          password: password,
+          full_name: fullName
+        };
+        
+        // Make POST request
+        const response = await fetch('http://localhost:8001/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <div class="success">Registration successful!</div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">Registration failed: ${data.detail}</div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">Error: ${error.message}</div>
+          <p>Make sure the backend server is running on port 8001</p>
+        `;
+      }
+    }
+    
+    // Get digital twins function
+    async function getDigitalTwins() {
+      const resultDiv = document.getElementById('twins-result');
+      
+      resultDiv.innerHTML = 'Fetching digital twins...';
+      
+      if (!authToken) {
+        resultDiv.innerHTML = `
+          <div class="error">Not authenticated</div>
+          <p>Please login first</p>
+        `;
+        return;
+      }
+      
+      try {
+        // Make GET request with token
+        const response = await fetch('http://localhost:8001/api/digital-twin', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultDiv.innerHTML = `
+            <div class="success">Digital twins retrieved successfully!</div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <div class="error">Failed to get digital twins: ${data.detail}</div>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <div class="error">Error: ${error.message}</div>
+          <p>Make sure the backend server is running on port 8001</p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
